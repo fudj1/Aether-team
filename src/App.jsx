@@ -1,20 +1,23 @@
 import { useState } from 'react';
 import { Layout, Button } from 'antd';
 import { Save, Settings, Undo, Redo, Hand, PenLine } from 'lucide-react';
+import Sidebar from './components/Sidebar';
 
 const { Header, Content, Sider } = Layout;
 
 function App() {
-  const [schema, setSchema] = useState({ components: [] });
 
   return (
       <Layout>
         <Sider width={260} theme="light" className="h-screen">
-          <Header className="bg-white! px-4!">
+          <Header className="bg-white! px-4! ">
             <Button color="default" variant="solid" shape="round" className="font-medium!">
               crm builder
             </Button>
           </Header>
+          <Content>
+            <Sidebar />
+          </Content>
         </Sider>
         <Layout>
           <Header className="bg-white! w-full flex px-4! items-center">
