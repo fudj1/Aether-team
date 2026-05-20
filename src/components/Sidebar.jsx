@@ -1,8 +1,8 @@
-import React from 'react';
-import { Tabs, Input, Collapse, Tree } from 'antd';
+import { Tabs, Input, Tree } from 'antd';
 const { Search } = Input;
 import DraggableNode from './DraggableNode';
 import { useState } from 'react';
+import SectionsTab from './SectionsTab';
 
 const TREE_GALLERY_DATA = [
   {
@@ -37,7 +37,7 @@ const Sidebar = () => {
         className=""
         indicator={{ size: (origin) => origin + 20 }}
         items={[
-          { label: 'Разделы', key: 'sections', children: <SectionsContent /> },
+          { label: 'Разделы', key: 'sections', children: <SectionsTab /> },
           { label: 'Галерея', key: 'gallery', children: <GalleryContent /> },
         ]}
       />
@@ -48,7 +48,6 @@ export default Sidebar;
 
 const GalleryContent = () => {
   const [expandedKeys, setExpandedKeys] = useState([]);
-  const [searchValue, setSearchValue] = useState('');
   const [autoExpandParent, setAutoExpandParent] = useState(true);
   const onExpand = newExpandedKeys => {
     console.log('onExpand', newExpandedKeys);
@@ -70,8 +69,3 @@ const GalleryContent = () => {
     </div>
   );
 }
-
-
-const SectionsContent = () => (
-  <div className="px-4 text-gray-500">Здесь будут разделы и папки для организации компонентов</div>
-)
