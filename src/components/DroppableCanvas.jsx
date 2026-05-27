@@ -20,7 +20,7 @@ const DroppableCanvas = ({ children, className }) => {
                     : 'bg-white border-2 border-transparent'
             } transition-all transition-duration-200`}
         >
-            {children.length === 0 && !isDropTarget && (
+            {isEmpty && !isDropTarget && (
                 <div className="text-center text-gray-300 mt-24">
                     Перетащите компоненты сюда
                 </div>

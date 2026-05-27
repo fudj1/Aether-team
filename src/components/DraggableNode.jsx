@@ -3,11 +3,10 @@ import { useDraggable } from '@dnd-kit/react';
 const DraggableNode = ({ node }) => {
   const { ref, listeners, attributes } = useDraggable({
     id: `sidebar-${node.key}`,
-    data: {
-      type: 'component',
-      componentType: node.key,
-      label: node.title,
-    },
+      data: {
+          componentType: node.key,
+          label: node.title,
+      },
   });
 
   if (!node.isLeaf) return <span className="font-bold">{node.title}</span>;
