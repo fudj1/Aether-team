@@ -1,4 +1,11 @@
 @import "tailwindcss";
+@import "react-grid-layout/css/styles.css";
+@import "react-resizable/css/styles.css";
+
+.react-grid-placeholder {
+  display: none !important;
+}
+
 * {
-    user-select: none;
+  user-select: none;
 }

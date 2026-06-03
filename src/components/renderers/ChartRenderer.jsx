@@ -1,47 +1,49 @@
 import { Card } from 'antd';
 import { Column, Pie, Line } from '@ant-design/charts';
+import { useEffect, useRef } from 'react';
 
 const defaultData = [
-    { type: 'Jan', value: 120 },
-    { type: 'Feb', value: 90 },
-    { type: 'Mar', value: 140 },
+  { type: 'Jan', value: 120 },
+  { type: 'Feb', value: 90 },
+  { type: 'Mar', value: 140 },
 ];
 
 const ChartRenderer = ({ component }) => {
-    const type = component.type;
 
-    const data = component.data?.rows || defaultData;
 
-    let ChartComponent = Column;
+  const type = component.type;
 
-    if (type === 'line-chart') {
-        ChartComponent = Line;
-    }
+  const data = component.data?.rows || defaultData;
 
-    if (type === 'pie-chart') {
-        ChartComponent = Pie;
-    }
+  let ChartComponent = Column;
 
-    const config =
-        type === 'pie-chart'
-            ? {
-                data,
-                angleField: 'value',
-                colorField: 'type',
-                height: 250,
-            }
-            : {
-                data,
-                xField: 'type',
-                yField: 'value',
-                height: 250,
-            };
+  if (type === 'line-chart') {
+    ChartComponent = Line;
+  }
 
-    return (
-        <Card title={component.props?.title || 'Ãðàôèê'}>
-            <ChartComponent {...config} />
-        </Card>
-    );
+  if (type === 'pie-chart') {
+    ChartComponent = Pie;
+  }
+
+  const config =
+    type === 'pie-chart' ? {
+        data,
+        angleField: 'value',
+        colorField: 'type',
+        height: 250,
+      } 
+      : {
+        data,
+        xField: 'type',
+        yField: 'value',
+        height: 250,
+      };
+
+  return (
+    <Card className="min-h-full min-w-full" title={component.props?.title || 'Ð“Ñ€Ð°Ñ„Ð¸Ðº'}>
+      <ChartComponent className="min-h-full min-w-full" {...config} />
+    </Card>
+  );
 };
 
 export default ChartRenderer;

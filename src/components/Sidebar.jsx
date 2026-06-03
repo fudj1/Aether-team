@@ -10,10 +10,7 @@ const TREE_GALLERY_DATA = [
     key: 'data',
     selectable: false,
     children: [
-      { title: 'KPI карточки', key: 'kpi-card', isLeaf: true },
       { title: 'Таблица', key: 'table', isLeaf: true },
-      { title: 'Сетка данных', key: 'data-grid', isLeaf: true },
-      { title: 'Дерево данных', key: 'data-tree', isLeaf: true },
     ],
   },
   {

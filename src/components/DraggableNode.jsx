@@ -1,21 +1,27 @@
-import { useDraggable } from '@dnd-kit/react';
-
 const DraggableNode = ({ node }) => {
-  const { ref, listeners, attributes } = useDraggable({
-    id: `sidebar-${node.key}`,
-      data: {
-          componentType: node.key,
-          label: node.title,
-      },
-  });
+  const handleDragStart = (event) => {
+    const payload = {
+      componentType: node.key,
+      label: node.title,
+    };
+
+    event.dataTransfer.setData(
+      'application/json',
+      JSON.stringify(payload)
+    );
+    event.dataTransfer.setData(
+      'text/plain',
+      JSON.stringify(payload)
+    );
+    event.dataTransfer.effectAllowed = 'copy';
+  };
 
   if (!node.isLeaf) return <span className="font-bold">{node.title}</span>;
 
   return (
     <div
-      ref={ref}
-      {...listeners}
-      {...attributes}
+      draggable
+      onDragStart={handleDragStart}
       className="p-1 cursor-grab active:cursor-grabbing rounded-md transition-colors block w-full hover:bg-blue-50 hover:text-blue-700 text-gray-700"
       title={node.title}
     >

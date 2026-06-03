@@ -31,7 +31,7 @@ const TableRenderer = ({ component }) => {
     const dataSource = component.data?.rows || defaultData;
 
     return (
-        <Card title={component.props?.title || 'Òàáëèöà'}>
+        <Card className="min-h-full min-w-full" title={component.props?.title || 'Ð¢Ð°Ð±Ð»Ð¸Ñ†Ð°'}>
             <Table
                 pagination={false}
                 columns={columns}
