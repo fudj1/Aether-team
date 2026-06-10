@@ -22,6 +22,11 @@ const TREE_GALLERY_DATA = [
       { title: 'Линейный', key: 'line-chart', isLeaf: true },
       { title: 'Круговая', key: 'pie-chart', isLeaf: true },
     ],
+  },
+  {
+    title: 'KPI карточка',
+    key: 'kpi-card',
+    isLeaf: true,
   }
 ];
 

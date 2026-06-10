@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar';
 import { SectionsProvider, useSections } from './contexts/SectionsContext';
 import SectionsRail from './components/SectionsRail';
 import CanvasRenderer from './components/CanvasRenderer';
+import PropertiesPanel from './components/PropertiesPanel';
 
 const { Header, Content, Sider } = Layout;
 
@@ -42,7 +43,42 @@ const AppLayout = ({ schema, setSchema }) => {
     loadProjectData,
   } = useSections();
 
-  const fileInputRef = useRef(null);
+    const COMPONENT_DEFAULTS = {
+        table: {
+            w: 4,
+            h: 6,
+        },
+
+        histogram: {
+            w: 2,
+            h: 6,
+        },
+
+        'line-chart': {
+            w: 2,
+            h: 6,
+        },
+
+        'pie-chart': {
+            w: 2,
+            h: 6,
+        },
+
+        'kpi-card': {
+            w: 1,
+            h: 2,
+        },
+    };
+
+    const fileInputRef = useRef(null);
+
+    const [selectedComponentId, setSelectedComponentId] =
+        useState(null);
+
+    const selectedComponent =
+        schema.components.find(
+            (c) => c.id === selectedComponentId
+        ) || null;
 
   const visibleComponents = schema.components.filter(
     (comp) => comp.sectionId === currentSectionId
@@ -60,12 +96,15 @@ const AppLayout = ({ schema, setSchema }) => {
       return;
     }
 
-    const normalizedLayout = {
-      x: Number.isFinite(layout?.x) ? layout.x : 0,
-      y: Number.isFinite(layout?.y) ? layout.y : 0,
-      w: layout?.w === 4 ? 4 : 2,
-      h: Number.isFinite(layout?.h) ? layout.h : 4,
-    };
+      const defaults =
+          COMPONENT_DEFAULTS[componentType];
+
+      const normalizedLayout = {
+          x: Number.isFinite(layout?.x) ? layout.x : 0,
+          y: Number.isFinite(layout?.y) ? layout.y : 0,
+          w: defaults?.w || 2,
+          h: defaults?.h || 6,
+      };
 
     const newComponent = {
       id: crypto.randomUUID(),
@@ -78,16 +117,24 @@ const AppLayout = ({ schema, setSchema }) => {
       data: {},
     };
 
+    if (componentType === 'kpi-card') {
+        newComponent.data = {
+            value: 100,
+            suffix: '%',
+        };
+    }
+
     setSchema((prev) => ({
       ...prev,
       components: [...prev.components, newComponent],
     }));
+      console.log(newComponent);
   };
 
   const handleLayoutChange = (nextLayout) => {
     if (!currentSectionId) {
       return;
-    }
+      }
 
     setSchema((prev) => {
       const nextComponents = prev.components.map((component) => {
@@ -114,6 +161,21 @@ const AppLayout = ({ schema, setSchema }) => {
       };
     });
   };
+
+    const updateComponent = (id, changes) => {
+        setSchema((prev) => ({
+            ...prev,
+            components: prev.components.map(
+                (component) =>
+                    component.id === id
+                        ? {
+                            ...component,
+                            ...changes,
+                        }
+                        : component
+            ),
+        }));
+    };
 
   const exportProject = () => {
     const project = {
@@ -264,13 +326,25 @@ const AppLayout = ({ schema, setSchema }) => {
                 className="w-full h-full p-5 overflow-y-auto overflow-x-hidden"
                 isEmpty={visibleComponents.length === 0}
               >
-                <CanvasRenderer
+              <CanvasRenderer
                   components={visibleComponents}
                   onLayoutChange={handleLayoutChange}
                   onDrop={handleCanvasDrop}
-                />
+                  selectedComponentId={selectedComponentId}
+                  onSelectComponent={setSelectedComponentId}
+              />
               </DroppableCanvas>
             </Content>
+            <Sider
+                width={300}
+                theme="light"
+                className="border-l border-gray-200"
+            >
+                <PropertiesPanel
+                    selectedComponent={selectedComponent}
+                    onUpdate={updateComponent}
+                />
+            </Sider>
           </Layout>
         </Layout>
       </Layout>
