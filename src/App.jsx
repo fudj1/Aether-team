@@ -46,7 +46,7 @@ const AppLayout = ({ schema, setSchema }) => {
     const COMPONENT_DEFAULTS = {
         table: {
             w: 4,
-            h: 6,
+            h: 10,
         },
 
         histogram: {
@@ -84,52 +84,108 @@ const AppLayout = ({ schema, setSchema }) => {
     (comp) => comp.sectionId === currentSectionId
   );
 
-  const handleCanvasDrop = ({ componentType, label, layout }) => {
-    if (!componentType || !label) {
-      return;
-    }
+    const handleCanvasDrop = ({
+        componentType,
+        label,
+        layout,
+    }) => {
+        if (!componentType || !label) {
+            return;
+        }
 
-    let sectionId = currentSectionId;
+        let sectionId = currentSectionId;
 
-    if (!sectionId) {
-      sectionId = addSection('Новый раздел');
-      return;
-    }
+        if (!sectionId) {
+            sectionId = addSection('Новый раздел');
+            return;
+        }
 
-      const defaults =
-          COMPONENT_DEFAULTS[componentType];
+        const defaults =
+            COMPONENT_DEFAULTS[componentType];
 
-      const normalizedLayout = {
-          x: Number.isFinite(layout?.x) ? layout.x : 0,
-          y: Number.isFinite(layout?.y) ? layout.y : 0,
-          w: defaults?.w || 2,
-          h: defaults?.h || 6,
-      };
+        const normalizedLayout = {
+            x: Number.isFinite(layout?.x)
+                ? layout.x
+                : 0,
 
-    const newComponent = {
-      id: crypto.randomUUID(),
-      type: componentType,
-      sectionId,
-      layout: normalizedLayout,
-      props: {
-        title: label,
-      },
-      data: {},
-    };
+            y: Number.isFinite(layout?.y)
+                ? layout.y
+                : 0,
 
-    if (componentType === 'kpi-card') {
-        newComponent.data = {
-            value: 100,
-            suffix: '%',
+            w: defaults?.w || 2,
+            h: defaults?.h || 6,
         };
-    }
 
-    setSchema((prev) => ({
-      ...prev,
-      components: [...prev.components, newComponent],
-    }));
-      console.log(newComponent);
-  };
+        const newComponent = {
+            id: crypto.randomUUID(),
+
+            type: componentType,
+
+            sectionId,
+
+            layout: normalizedLayout,
+
+            props: {
+                title: label,
+            },
+
+            data: {},
+        };
+
+        if (componentType === 'kpi-card') {
+            newComponent.data = {
+                value: 100,
+                suffix: '%',
+            };
+        }
+
+        if (componentType === 'table') {
+            newComponent.data = {
+                columns: [
+                    {
+                        title: 'Имя',
+                        dataIndex: 'name',
+                        key: 'name',
+                        type: 'text',
+                    },
+                    {
+                        title: 'Статус',
+                        dataIndex: 'status',
+                        key: 'status',
+                        type: 'status',
+                    },
+                ],
+
+                rows: [
+                    {
+                        key: crypto.randomUUID(),
+                        name: 'Иван',
+                        status: 'В работе',
+                    },
+                ],
+
+                settings: {
+                    pagination: true,
+                    pageSize: 5,
+                    sortable: true,
+                },
+            };
+        }
+
+        setSchema((prev) => ({
+            ...prev,
+
+            components: [
+                ...prev.components,
+                newComponent,
+            ],
+        }));
+
+        console.log(
+            'NEW COMPONENT',
+            newComponent
+        );
+    };
 
   const handleLayoutChange = (nextLayout) => {
     if (!currentSectionId) {

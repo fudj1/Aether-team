@@ -1,4 +1,12 @@
-﻿import { Card, Input, Select, Button } from 'antd';
+﻿import {
+    Card,
+    Input,
+    Select,
+    Button,
+    Switch,
+    InputNumber,
+    Divider
+} from 'antd';
 
 const PropertiesPanel = ({
     selectedComponent,
@@ -137,98 +145,356 @@ const PropertiesPanel = ({
 
                 {selectedComponent.type === 'table' && (
                     <>
+                        <Divider>Колонки</Divider>
+
+                        {(selectedComponent.data?.columns || []).map(
+                            (column, index) => (
+                                <Card
+                                    key={column.key}
+                                    size="small"
+                                    className="mb-2"
+                                >
+                                    <Input
+                                        className="mb-2"
+                                        placeholder="Название"
+                                        value={column.title}
+                                        onChange={(e) => {
+                                            const columns = [
+                                                ...(selectedComponent.data?.columns || [])
+                                            ];
+
+                                            columns[index] = {
+                                                ...columns[index],
+                                                title: e.target.value,
+                                            };
+
+                                            onUpdate(selectedComponent.id, {
+                                                data: {
+                                                    ...selectedComponent.data,
+                                                    columns,
+                                                },
+                                            });
+                                        }}
+                                    />
+
+                                    <Select
+                                        className="w-full mb-2"
+                                        value={column.type || 'text'}
+                                        onChange={(value) => {
+                                            const columns = [
+                                                ...(selectedComponent.data?.columns || [])
+                                            ];
+
+                                            columns[index] = {
+                                                ...columns[index],
+                                                type: value,
+                                            };
+
+                                            onUpdate(selectedComponent.id, {
+                                                data: {
+                                                    ...selectedComponent.data,
+                                                    columns,
+                                                },
+                                            });
+                                        }}
+                                        options={[
+                                            {
+                                                value: 'text',
+                                                label: 'Текст',
+                                            },
+                                            {
+                                                value: 'number',
+                                                label: 'Число',
+                                            },
+                                            {
+                                                value: 'date',
+                                                label: 'Дата',
+                                            },
+                                            {
+                                                value: 'status',
+                                                label: 'Статус',
+                                            },
+                                        ]}
+                                    />
+
+                                    <Button
+                                        danger
+                                        block
+                                        onClick={() => {
+                                            const columns =
+                                                (selectedComponent.data?.columns || [])
+                                                    .filter((_, i) => i !== index);
+
+                                            onUpdate(selectedComponent.id, {
+                                                data: {
+                                                    ...selectedComponent.data,
+                                                    columns,
+                                                },
+                                            });
+                                        }}
+                                    >
+                                        Удалить колонку
+                                    </Button>
+                                </Card>
+                            )
+                        )}
+
+                        <Button
+                            block
+                            type="primary"
+                            className="mb-4"
+                            onClick={() => {
+                                const columns = [
+                                    ...(selectedComponent.data?.columns || [])
+                                ];
+
+                                const id =
+                                    `col${columns.length + 1}`;
+
+                                columns.push({
+                                    title: `Колонка ${columns.length + 1}`,
+                                    dataIndex: id,
+                                    key: id,
+                                    type: 'text',
+                                });
+
+                                onUpdate(selectedComponent.id, {
+                                    data: {
+                                        ...selectedComponent.data,
+                                        columns,
+                                    },
+                                });
+                            }}
+                        >
+                            Добавить колонку
+                        </Button>
+
+                        <Divider>Строки</Divider>
+
+                        <Button
+                            block
+                            onClick={() => {
+                                const rows = [
+                                    ...(selectedComponent.data?.rows || [])
+                                ];
+
+                                const row = {
+                                    key: crypto.randomUUID(),
+                                };
+
+                                (selectedComponent.data?.columns || [])
+                                    .forEach((column) => {
+                                        row[column.dataIndex] = '';
+                                    });
+
+                                rows.push(row);
+
+                                onUpdate(selectedComponent.id, {
+                                    data: {
+                                        ...selectedComponent.data,
+                                        rows,
+                                    },
+                                });
+                            }}
+                        >
+                            Добавить строку
+                        </Button>
+                        <Divider>Данные</Divider>
+
+                        {(selectedComponent.data?.rows || []).map(
+                            (row, rowIndex) => (
+                                <Card
+                                    key={row.key}
+                                    size="small"
+                                    className="mb-2"
+                                >
+                                    {(selectedComponent.data?.columns || []).map(
+                                        (column) => (
+                                            <div
+                                                key={column.key}
+                                                className="mb-2"
+                                            >
+                                                <div className="mb-1">
+                                                    {column.title}
+                                                </div>
+
+                                                {column.type === 'status' ? (
+                                                    <Select
+                                                        className="w-full"
+                                                        value={row[column.dataIndex]}
+                                                        options={[
+                                                            {
+                                                                value: 'Новый',
+                                                                label: 'Новый',
+                                                            },
+                                                            {
+                                                                value: 'В работе',
+                                                                label: 'В работе',
+                                                            },
+                                                            {
+                                                                value: 'Оплачен',
+                                                                label: 'Оплачен',
+                                                            },
+                                                            {
+                                                                value: 'Отменен',
+                                                                label: 'Отменен',
+                                                            },
+                                                        ]}
+                                                        onChange={(value) => {
+
+                                                            const rows = [
+                                                                ...(selectedComponent.data?.rows || [])
+                                                            ];
+
+                                                            rows[rowIndex] = {
+                                                                ...rows[rowIndex],
+                                                                [column.dataIndex]: value,
+                                                            };
+
+                                                            onUpdate(
+                                                                selectedComponent.id,
+                                                                {
+                                                                    data: {
+                                                                        ...selectedComponent.data,
+                                                                        rows,
+                                                                    },
+                                                                }
+                                                            );
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <Input
+                                                        value={
+                                                            row[column.dataIndex] || ''
+                                                        }
+                                                        onChange={(e) => {
+
+                                                            const rows = [
+                                                                ...(selectedComponent.data?.rows || [])
+                                                            ];
+
+                                                            rows[rowIndex] = {
+                                                                ...rows[rowIndex],
+                                                                [column.dataIndex]:
+                                                                    e.target.value,
+                                                            };
+
+                                                            onUpdate(
+                                                                selectedComponent.id,
+                                                                {
+                                                                    data: {
+                                                                        ...selectedComponent.data,
+                                                                        rows,
+                                                                    },
+                                                                }
+                                                            );
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+                                        )
+                                    )}
+
+                                    <Button
+                                        danger
+                                        block
+                                        onClick={() => {
+
+                                            const rows =
+                                                (selectedComponent.data?.rows || [])
+                                                    .filter(
+                                                        (_, i) =>
+                                                            i !== rowIndex
+                                                    );
+
+                                            onUpdate(
+                                                selectedComponent.id,
+                                                {
+                                                    data: {
+                                                        ...selectedComponent.data,
+                                                        rows,
+                                                    },
+                                                }
+                                            );
+                                        }}
+                                    >
+                                        Удалить строку
+                                    </Button>
+
+                                </Card>
+                            )
+                        )}
+
                         <div className="mt-4">
                             <div className="mb-1">
-                                Название первого столбца
+                                Пагинация
                             </div>
 
-                            <Input
-                                value={
-                                    selectedComponent.data?.columns?.[0]?.title || ''
+                            <Switch
+                                checked={
+                                    selectedComponent.data?.settings?.pagination
                                 }
-                                onChange={(e) => {
-                                    const columns = [
-                                        ...(selectedComponent.data?.columns || [])
-                                    ];
-
-                                    if (!columns[0]) {
-                                        columns[0] = {
-                                            title: '',
-                                            dataIndex: 'col1',
-                                            key: 'col1',
-                                        };
-                                    }
-
-                                    columns[0].title = e.target.value;
-
+                                onChange={(checked) =>
                                     onUpdate(selectedComponent.id, {
                                         data: {
                                             ...selectedComponent.data,
-                                            columns,
+                                            settings: {
+                                                ...selectedComponent.data?.settings,
+                                                pagination: checked,
+                                            },
                                         },
-                                    });
-                                }}
+                                    })
+                                }
                             />
                         </div>
 
                         <div className="mt-4">
                             <div className="mb-1">
-                                Название второго столбца
+                                Размер страницы
                             </div>
 
-                            <Input
+                            <InputNumber
+                                min={1}
+                                max={100}
+                                className="w-full"
                                 value={
-                                    selectedComponent.data?.columns?.[1]?.title || ''
+                                    selectedComponent.data?.settings?.pageSize || 5
                                 }
-                                onChange={(e) => {
-                                    const columns = [
-                                        ...(selectedComponent.data?.columns || [])
-                                    ];
-
-                                    if (!columns[1]) {
-                                        columns[1] = {
-                                            title: '',
-                                            dataIndex: 'col2',
-                                            key: 'col2',
-                                        };
-                                    }
-
-                                    columns[1].title = e.target.value;
-
+                                onChange={(value) =>
                                     onUpdate(selectedComponent.id, {
                                         data: {
                                             ...selectedComponent.data,
-                                            columns,
+                                            settings: {
+                                                ...selectedComponent.data?.settings,
+                                                pageSize: value,
+                                            },
                                         },
-                                    });
-                                }}
+                                    })
+                                }
                             />
                         </div>
 
                         <div className="mt-4">
-                            <Button
-                                block
-                                onClick={() => {
-                                    const rows = [
-                                        ...(selectedComponent.data?.rows || [])
-                                    ];
+                            <div className="mb-1">
+                                Сортировка
+                            </div>
 
-                                    rows.push({
-                                        key: crypto.randomUUID(),
-                                        col1: 'Иван',
-                                        col2: 'Иванов',
-                                    });
-
+                            <Switch
+                                checked={
+                                    selectedComponent.data?.settings?.sortable
+                                }
+                                onChange={(checked) =>
                                     onUpdate(selectedComponent.id, {
                                         data: {
                                             ...selectedComponent.data,
-                                            rows,
+                                            settings: {
+                                                ...selectedComponent.data?.settings,
+                                                sortable: checked,
+                                            },
                                         },
-                                    });
-                                }}
-                            >
-                                Добавить строку
-                            </Button>
+                                    })
+                                }
+                            />
                         </div>
                     </>
                 )}

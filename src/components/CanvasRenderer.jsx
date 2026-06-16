@@ -10,7 +10,7 @@ const DEFAULT_ITEM = {
     minW: 1,
     maxW: 4,
     minH: 5,
-    maxH: 6,
+    maxH: 50,
 };
 
 const ALLOWED_WIDTHS = [1, 2, 3, 4];
@@ -28,6 +28,9 @@ const getLayoutItem = (component, index) => {
     const isKpi =
         component.type === 'kpi-card';
 
+    const isTable =
+        component.type === 'table';
+
     return {
         i: String(component.id),
 
@@ -40,13 +43,29 @@ const getLayoutItem = (component, index) => {
             : Math.floor(index / 4) * 6,
 
         w: l.w ?? (isKpi ? 1 : 2),
-        h: l.h ?? (isKpi ? 2 : 6),
+
+        h: l.h ?? (
+            isKpi
+                ? 2
+                : isTable
+                    ? 10
+                    : 6
+        ),
 
         minW: 1,
         maxW: 4,
 
-        minH: isKpi ? 2 : 5,
-        maxH: isKpi ? 3 : 6,
+        minH:
+            isKpi
+                ? 2
+                : isTable
+                    ? 8
+                    : 5,
+
+        maxH:
+            isKpi
+                ? 3
+                : 50,
     };
 };
 

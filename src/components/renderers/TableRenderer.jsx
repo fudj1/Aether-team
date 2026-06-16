@@ -1,4 +1,4 @@
-import { Card, Table } from 'antd';
+import { Card, Table, Tag } from 'antd';
 
 const defaultColumns = [
     {
@@ -30,12 +30,66 @@ const TableRenderer = ({ component }) => {
     const columns = component.data?.columns || defaultColumns;
     const dataSource = component.data?.rows || defaultData;
 
+    const preparedColumns = columns.map((column) => {
+        const preparedColumn = {
+            ...column,
+
+            sorter:
+                component.data?.settings?.sortable
+                    ? (a, b) =>
+                        String(
+                            a[column.dataIndex] || ''
+                        ).localeCompare(
+                            String(
+                                b[column.dataIndex] || ''
+                            )
+                        )
+                    : false,
+        };
+
+        if (column.type === 'status') {
+            preparedColumn.render = (value) => {
+                let color = 'default';
+
+                if (value === 'Оплачен') {
+                    color = 'green';
+                }
+
+                if (value === 'В работе') {
+                    color = 'orange';
+                }
+
+                if (value === 'Отменен') {
+                    color = 'red';
+                }
+
+                return (
+                    <Tag color={color}>
+                        {value}
+                    </Tag>
+                );
+            };
+        }
+
+        return preparedColumn;
+    });
+
     return (
-        <Card className="min-h-full min-w-full" title={component.props?.title || 'Таблица'}>
+        <Card
+            className="min-h-full min-w-full"
+            title={component.props?.title || 'Таблица'}
+        >
             <Table
-                pagination={false}
-                columns={columns}
+                columns={preparedColumns}
                 dataSource={dataSource}
+                pagination={
+                    component.data?.settings?.pagination
+                        ? {
+                            pageSize:
+                                component.data?.settings?.pageSize || 5,
+                        }
+                        : false
+                }
             />
         </Card>
     );
