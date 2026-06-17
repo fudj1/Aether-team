@@ -1,318 +1,462 @@
 import DroppableCanvas from './components/DroppableCanvas';
-import { useRef, useState } from 'react';
-import { Layout, Button, Breadcrumb } from 'antd';
-import { Save, Settings, Import, Undo, Redo, Hand, PenLine } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Layout, Button, Breadcrumb, Tooltip } from 'antd';
+import { Save, Import, Undo, Redo, Hand, PenLine } from 'lucide-react';
 import Sidebar from './components/Sidebar';
-import { SectionsProvider, useSections } from './contexts/SectionsContext';
+import ResizablePanel from './components/ResizablePanel';
+import { SectionsProvider } from './contexts/SectionsContext';
+import {
+  DEFAULT_SECTION_NAMES,
+  DEFAULT_CRM_NAME,
+  createId,
+  createSection,
+} from './contexts/sectionsUtils';
+import useHistory from './hooks/useHistory';
 import SectionsRail from './components/SectionsRail';
 import CanvasRenderer from './components/CanvasRenderer';
 import PropertiesPanel from './components/PropertiesPanel';
 
 const { Header, Content, Sider } = Layout;
 
-function App() {
-  const [schema, setSchema] = useState({
-    components: [],
-  });
+const COMPONENT_DEFAULTS = {
+  table: { w: 4, h: 10 },
+  histogram: { w: 2, h: 6 },
+  'line-chart': { w: 2, h: 6 },
+  'pie-chart': { w: 2, h: 6 },
+  'kpi-card': { w: 1, h: 2 },
+};
 
-  const handleDeleteSection = (sectionId) => {
-    setSchema((prev) => ({
-      ...prev,
-      components: prev.components.filter(
-        (comp) => comp.sectionId !== sectionId
-      ),
-    }));
-  };
+const createInitialState = () => {
+  const sections = DEFAULT_SECTION_NAMES.map(createSection);
 
-  return (
-    <SectionsProvider onDeleteSection={handleDeleteSection}>
-      <AppLayout
-        schema={schema}
-        setSchema={setSchema}
-      />
-    </SectionsProvider>
-  );
-}
-
-const AppLayout = ({ schema, setSchema }) => {
-  const {
-    currentSectionId,
-    addSection,
+  return {
+    crmName: DEFAULT_CRM_NAME,
     sections,
-    crmName,
-    loadProjectData,
-  } = useSections();
+    currentSectionId: sections[0]?.id ?? null,
+    components: [],
+  };
+};
 
-    const COMPONENT_DEFAULTS = {
-        table: {
-            w: 4,
-            h: 10,
-        },
+function App() {
 
-        histogram: {
-            w: 2,
-            h: 6,
-        },
+  const {
+    state,
+    presentRef,
+    commit,
+    setPresentSilent,
+    undo,
+    redo,
+    reset,
+    canUndo,
+    canRedo,
+  } = useHistory(createInitialState());
 
-        'line-chart': {
-            w: 2,
-            h: 6,
-        },
+  const fileInputRef = useRef(null);
+  const [selectedComponentId, setSelectedComponentId] = useState(null);
 
-        'pie-chart': {
-            w: 2,
-            h: 6,
-        },
+  const { crmName, sections, currentSectionId, components } = state;
 
-        'kpi-card': {
-            w: 1,
-            h: 2,
-        },
-    };
+  const selectedComponent =
+    components.find((c) => c.id === selectedComponentId) || null;
 
-    const fileInputRef = useRef(null);
-
-    const [selectedComponentId, setSelectedComponentId] =
-        useState(null);
-
-    const selectedComponent =
-        schema.components.find(
-            (c) => c.id === selectedComponentId
-        ) || null;
-
-  const visibleComponents = schema.components.filter(
-    (comp) => comp.sectionId === currentSectionId
+  const visibleComponents = useMemo(
+    () => components.filter((comp) => comp.sectionId === currentSectionId),
+    [components, currentSectionId]
   );
 
-    const handleCanvasDrop = ({
-        componentType,
-        label,
-        layout,
-    }) => {
-        if (!componentType || !label) {
-            return;
-        }
+  
 
-        let sectionId = currentSectionId;
+  const setCurrentSectionId = useCallback(
+    (idOrUpdater) => {
+      setPresentSilent((prev) => {
+        const nextId =
+          typeof idOrUpdater === 'function'
+            ? idOrUpdater(prev.currentSectionId)
+            : idOrUpdater;
 
-        if (!sectionId) {
-            sectionId = addSection('Новый раздел');
-            return;
-        }
+        if (nextId === prev.currentSectionId) return prev;
 
-        const defaults =
-            COMPONENT_DEFAULTS[componentType];
+        return { ...prev, currentSectionId: nextId };
+      });
+    },
+    [setPresentSilent]
+  );
 
-        const normalizedLayout = {
-            x: Number.isFinite(layout?.x)
-                ? layout.x
-                : 0,
+  const updateCrmName = useCallback(
+    (name) => {
+      const trimmed = name.trim();
+      if (!trimmed) return false;
 
-            y: Number.isFinite(layout?.y)
-                ? layout.y
-                : 0,
+      commit((prev) =>
+        prev.crmName === trimmed ? prev : { ...prev, crmName: trimmed }
+      );
+      return true;
+    },
+    [commit]
+  );
 
-            w: defaults?.w || 2,
-            h: defaults?.h || 6,
-        };
+  const addSection = useCallback(
+    (name) => {
+      const trimmed = name.trim();
+      if (!trimmed) return null;
 
-        const newComponent = {
-            id: crypto.randomUUID(),
+      const newSection = createSection(trimmed);
 
-            type: componentType,
+      commit((prev) => ({
+        ...prev,
+        sections: [...prev.sections, newSection],
+        currentSectionId: newSection.id,
+      }));
 
-            sectionId,
+      return newSection.id;
+    },
+    [commit]
+  );
 
-            layout: normalizedLayout,
+  const renameSection = useCallback(
+    (id, name) => {
+      const trimmed = name.trim();
+      if (!trimmed) return false;
 
-            props: {
-                title: label,
-            },
+      commit((prev) => ({
+        ...prev,
+        sections: prev.sections.map((section) =>
+          section.id === id ? { ...section, name: trimmed } : section
+        ),
+      }));
 
-            data: {},
-        };
+      return true;
+    },
+    [commit]
+  );
 
-        if (componentType === 'kpi-card') {
-            newComponent.data = {
-                value: 100,
-                suffix: '%',
-            };
-        }
-
-        if (componentType === 'table') {
-            newComponent.data = {
-                columns: [
-                    {
-                        title: 'Имя',
-                        dataIndex: 'name',
-                        key: 'name',
-                        type: 'text',
-                    },
-                    {
-                        title: 'Статус',
-                        dataIndex: 'status',
-                        key: 'status',
-                        type: 'status',
-                    },
-                ],
-
-                rows: [
-                    {
-                        key: crypto.randomUUID(),
-                        name: 'Иван',
-                        status: 'В работе',
-                    },
-                ],
-
-                settings: {
-                    pagination: true,
-                    pageSize: 5,
-                    sortable: true,
-                },
-            };
-        }
-
-        setSchema((prev) => ({
-            ...prev,
-
-            components: [
-                ...prev.components,
-                newComponent,
-            ],
-        }));
-
-        console.log(
-            'NEW COMPONENT',
-            newComponent
+  const deleteSection = useCallback(
+    (id) => {
+      commit((prev) => {
+        const nextSections = prev.sections.filter(
+          (section) => section.id !== id
         );
-    };
 
-  const handleLayoutChange = (nextLayout) => {
-    if (!currentSectionId) {
-      return;
-      }
+        if (nextSections.length === prev.sections.length) {
+          return prev;
+        }
 
-    setSchema((prev) => {
-      const nextComponents = prev.components.map((component) => {
-        if (component.sectionId !== currentSectionId) return component;
-
-        const layoutItem = nextLayout.find((item) => item.i === component.id);
-
-        if (!layoutItem) return component;
+        const nextCurrentId =
+          prev.currentSectionId === id
+            ? nextSections[0]?.id ?? null
+            : prev.currentSectionId;
 
         return {
-          ...component,
-          layout: {
-            x: layoutItem.x,
-            y: layoutItem.y,
-            w: layoutItem.w,
-            h: layoutItem.h,
-          },
+          ...prev,
+          sections: nextSections,
+          currentSectionId: nextCurrentId,
+          components: prev.components.filter(
+            (comp) => comp.sectionId !== id
+          ),
         };
       });
+    },
+    [commit]
+  );
 
-      return {
-        ...prev,
-        components: nextComponents,
+  const loadProjectData = useCallback(
+    (project) => {
+      if (!project) return;
+
+      reset({
+        crmName: project.crmName || DEFAULT_CRM_NAME,
+        sections: Array.isArray(project.sections) ? project.sections : [],
+        currentSectionId:
+          project.currentSectionId ??
+          (Array.isArray(project.sections)
+            ? project.sections[0]?.id ?? null
+            : null),
+        components: Array.isArray(project.components)
+          ? project.components
+          : [],
+      });
+    },
+    [reset]
+  );
+
+  const handleCanvasDrop = useCallback(
+    ({ componentType, label, layout }) => {
+      if (!componentType || !label) return;
+
+      let sectionId = currentSectionId;
+
+      if (!sectionId) {
+        addSection('Новый раздел');
+        return;
+      }
+
+      const defaults = COMPONENT_DEFAULTS[componentType];
+
+      const normalizedLayout = {
+        x: Number.isFinite(layout?.x) ? layout.x : 0,
+        y: Number.isFinite(layout?.y) ? layout.y : 0,
+        w: defaults?.w || 2,
+        h: defaults?.h || 6,
       };
-    });
-  };
 
-    const updateComponent = (id, changes) => {
-        setSchema((prev) => ({
-            ...prev,
-            components: prev.components.map(
-                (component) =>
-                    component.id === id
-                        ? {
-                            ...component,
-                            ...changes,
-                        }
-                        : component
-            ),
-        }));
-    };
+      const newComponent = {
+        id: createId(),
+        type: componentType,
+        sectionId,
+        layout: normalizedLayout,
+        props: { title: label },
+        data: {},
+      };
 
-  const exportProject = () => {
+      if (componentType === 'kpi-card') {
+        newComponent.data = { value: 100, suffix: '%' };
+      }
+
+      if (componentType === 'table') {
+        newComponent.data = {
+          columns: [
+            {
+              title: 'Имя',
+              dataIndex: 'name',
+              key: 'name',
+              type: 'text',
+            },
+            {
+              title: 'Статус',
+              dataIndex: 'status',
+              key: 'status',
+              type: 'status',
+            },
+          ],
+          rows: [
+            {
+              key: createId(),
+              name: 'Иван',
+              status: 'В работе',
+            },
+          ],
+          settings: {
+            pagination: true,
+            pageSize: 5,
+            sortable: true,
+          },
+        };
+      }
+
+      commit((prev) => ({
+        ...prev,
+        components: [...prev.components, newComponent],
+      }));
+    },
+    [commit, currentSectionId, addSection]
+  );
+
+  const handleLayoutChange = useCallback(
+    (nextLayout) => {
+      const activeSectionId = presentRef.current.currentSectionId;
+      if (!activeSectionId) return;
+
+      commit((prev) => {
+        let changed = false;
+
+        const nextComponents = prev.components.map((component) => {
+          if (component.sectionId !== activeSectionId) return component;
+
+          const layoutItem = nextLayout.find(
+            (item) => item.i === component.id
+          );
+
+          if (!layoutItem) return component;
+
+          const sameLayout =
+            component.layout?.x === layoutItem.x &&
+            component.layout?.y === layoutItem.y &&
+            component.layout?.w === layoutItem.w &&
+            component.layout?.h === layoutItem.h;
+
+          if (sameLayout) return component;
+
+          changed = true;
+
+          return {
+            ...component,
+            layout: {
+              x: layoutItem.x,
+              y: layoutItem.y,
+              w: layoutItem.w,
+              h: layoutItem.h,
+            },
+          };
+        });
+
+        if (!changed) return prev;
+
+
+        return { ...prev, components: nextComponents };
+      });
+    },
+    [commit, presentRef]
+  );
+
+  const updateComponent = useCallback(
+    (id, changes) => {
+      commit((prev) => ({
+        ...prev,
+        components: prev.components.map((component) =>
+          component.id === id ? { ...component, ...changes } : component
+        ),
+      }));
+    },
+    [commit]
+  );
+
+  const deleteComponent = useCallback(
+    (id) => {
+      if (!id) return;
+
+      commit((prev) => {
+        const nextComponents = prev.components.filter(
+          (component) => component.id !== id
+        );
+
+        if (nextComponents.length === prev.components.length) {
+          return prev;
+        }
+
+        return { ...prev, components: nextComponents };
+      });
+
+      setSelectedComponentId((current) => (current === id ? null : current));
+    },
+    [commit]
+  );
+
+
+  const exportProject = useCallback(() => {
     const project = {
       version: '1.0',
       crmName,
       sections,
       currentSectionId,
-      components: schema.components,
+      components,
     };
 
-    const json = JSON.stringify(
-      project,
-      null,
-      2
-    );
-
-    const blob = new Blob(
-      [json],
-      {
-        type: 'application/json',
-      }
-    );
-
+    const json = JSON.stringify(project, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement('a');
 
     link.href = url;
     link.download = `${crmName || 'crm-project'}.json`;
-
     document.body.appendChild(link);
-
     link.click();
-
     document.body.removeChild(link);
-
     URL.revokeObjectURL(url);
-  };
+  }, [crmName, sections, currentSectionId, components]);
 
-  const importProject = (event) => {
-    const file = event.target.files?.[0];
+  const importProject = useCallback(
+    (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-    if (!file) return;
+      const reader = new FileReader();
 
-    const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const project = JSON.parse(e.target.result);
+          loadProjectData(project);
+          setSelectedComponentId(null);
+        } catch (error) {
+          console.error(error);
+        }
+      };
 
-    reader.onload = (e) => {
-      try {
-        const project = JSON.parse(
-          e.target.result
-        );
+      reader.readAsText(file);
+      event.target.value = '';
+    },
+    [loadProjectData]
+  );
 
-        loadProjectData(project);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [components, currentSectionId]);
 
-        setSchema({
-          components:
-            project.components || [],
-        });
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const target = event.target;
+      const tag = target?.tagName;
+      const isEditable =
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        target?.isContentEditable;
 
-        console.log(
-          'PROJECT IMPORTED',
-          project
-        );
-      } catch (error) {
-        console.error(error);
+      const isMod = event.metaKey || event.ctrlKey;
 
+      if (isMod && event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+        return;
+      }
+
+      if (isMod && event.key.toLowerCase() === 'y') {
+        event.preventDefault();
+        redo();
+        return;
+      }
+
+      if (
+        (event.key === 'Delete' || event.key === 'Backspace') &&
+        !isEditable &&
+        selectedComponentId
+      ) {
+        event.preventDefault();
+        deleteComponent(selectedComponentId);
       }
     };
 
-    reader.readAsText(file);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, deleteComponent, selectedComponentId]);
 
-    event.target.value = '';
-  };
+
+  const sectionsValue = useMemo(
+    () => ({
+      sections,
+      currentSectionId,
+      setCurrentSectionId,
+      crmName,
+      updateCrmName,
+      addSection,
+      renameSection,
+      deleteSection,
+      loadProjectData,
+    }),
+    [
+      sections,
+      currentSectionId,
+      setCurrentSectionId,
+      crmName,
+      updateCrmName,
+      addSection,
+      renameSection,
+      deleteSection,
+      loadProjectData,
+    ]
+  );
 
   const currentSectionName = sections.find(
-    (section) =>
-      section.id === currentSectionId
+    (section) => section.id === currentSectionId
   )?.name;
 
   return (
-    <>
+    <SectionsProvider value={sectionsValue}>
       <input
         ref={fileInputRef}
         type="file"
@@ -322,11 +466,7 @@ const AppLayout = ({ schema, setSchema }) => {
       />
 
       <Layout>
-        <Sider
-          width={260}
-          theme="light"
-          className="h-screen"
-        >
+        <Sider width={260} theme="light" className="h-screen">
           <Header className="bg-white! px-4!">
             <Button
               color="default"
@@ -353,22 +493,81 @@ const AppLayout = ({ schema, setSchema }) => {
             />
 
             <div className="ml-auto flex gap-2">
-              <Button type="text" shape="circle" icon={ <span><PenLine size={18} /></span> }/>
-              <Button type="text" shape="circle" icon={ <span><Hand size={18} /></span> }/>
-              <Button type="text" shape="circle" icon={ <span><Undo size={18} /></span> }/>
-              <Button type="text" shape="circle" icon={ <span><Redo size={18} /></span> }/>
-              <Button type="primary" shape="round" icon={ <span><Import size={18} /></span> }
-                onClick={() => fileInputRef.current?.click()}>
+              <Button
+                type="text"
+                shape="circle"
+                icon={
+                  <span>
+                    <PenLine size={18} />
+                  </span>
+                }
+              />
+              <Button
+                type="text"
+                shape="circle"
+                icon={
+                  <span>
+                    <Hand size={18} />
+                  </span>
+                }
+              />
+              <Tooltip title="Отменить (Ctrl+Z)">
+                <Button
+                  type="text"
+                  shape="circle"
+                  disabled={!canUndo}
+                  onClick={undo}
+                  icon={
+                    <span>
+                      <Undo size={18} />
+                    </span>
+                  }
+                />
+              </Tooltip>
+              <Tooltip title="Повторить (Ctrl+Shift+Z)">
+                <Button
+                  type="text"
+                  shape="circle"
+                  disabled={!canRedo}
+                  onClick={redo}
+                  icon={
+                    <span>
+                      <Redo size={18} />
+                    </span>
+                  }
+                />
+              </Tooltip>
+              <Button
+                type="primary"
+                shape="round"
+                icon={
+                  <span>
+                    <Import size={18} />
+                  </span>
+                }
+                onClick={() => fileInputRef.current?.click()}
+              >
                 Импорт
               </Button>
-              {/* <Button type="primary" shape="round" icon={ <span><Settings size={16} /></span> }>Администратор</Button> */}
-              <Button type="primary" shape="round" icon={ <span><Save size={16} /></span> } onClick={exportProject}>
+              <Button
+                type="primary"
+                shape="round"
+                icon={
+                  <span>
+                    <Save size={16} />
+                  </span>
+                }
+                onClick={exportProject}
+              >
                 Сохранить
               </Button>
             </div>
           </Header>
 
-          <Layout className="m-4 bg-gray-100" style={{height: 'calc(100vh - 64px - 32px)'}}>
+          <Layout
+            className="relative m-4 bg-gray-100"
+            style={{ height: 'calc(100vh - 64px - 32px)' }}
+          >
             <Sider
               width={220}
               theme="light"
@@ -382,30 +581,28 @@ const AppLayout = ({ schema, setSchema }) => {
                 className="w-full h-full p-5 overflow-y-auto overflow-x-hidden"
                 isEmpty={visibleComponents.length === 0}
               >
-              <CanvasRenderer
+                <CanvasRenderer
                   components={visibleComponents}
                   onLayoutChange={handleLayoutChange}
                   onDrop={handleCanvasDrop}
                   selectedComponentId={selectedComponentId}
                   onSelectComponent={setSelectedComponentId}
-              />
+                  onDeleteComponent={deleteComponent}
+                />
               </DroppableCanvas>
             </Content>
-            <Sider
-                width={300}
-                theme="light"
-                className="border-l border-gray-200"
-            >
-                <PropertiesPanel
-                    selectedComponent={selectedComponent}
-                    onUpdate={updateComponent}
-                />
-            </Sider>
+            <ResizablePanel>
+              <PropertiesPanel
+                selectedComponent={selectedComponent}
+                onUpdate={updateComponent}
+                onDelete={deleteComponent}
+              />
+            </ResizablePanel>
           </Layout>
         </Layout>
       </Layout>
-    </>
+    </SectionsProvider>
   );
-};
+}
 
 export default App;

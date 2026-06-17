@@ -1,17 +1,9 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import ReactGridLayout, { WidthProvider } from 'react-grid-layout';
+import { X } from 'lucide-react';
 import { componentRegistry } from './renderers/componentRegistry';
 
 const GridLayout = WidthProvider(ReactGridLayout);
-
-const DEFAULT_ITEM = {
-    w: 2,
-    h: 6,
-    minW: 1,
-    maxW: 4,
-    minH: 5,
-    maxH: 50,
-};
 
 const ALLOWED_WIDTHS = [1, 2, 3, 4];
 
@@ -91,6 +83,7 @@ const CanvasRenderer = ({
     onDrop,
     selectedComponentId,
     onSelectComponent,
+    onDeleteComponent,
 }) => {
     const renderableComponents = useMemo(
         () =>
@@ -119,13 +112,17 @@ const CanvasRenderer = ({
 
         if (!payload) return;
 
+        const item = layoutItem || {};
+
         onDrop?.({
             ...payload,
             layout: {
-                x: layoutItem.x,
-                y: layoutItem.y,
-                w: snapWidth(layoutItem.w),
-                h: layoutItem.h,
+                x: Number.isFinite(item.x) ? item.x : 0,
+                y: Number.isFinite(item.y) ? item.y : 0,
+                w: Number.isFinite(item.w)
+                    ? snapWidth(item.w)
+                    : 2,
+                h: Number.isFinite(item.h) ? item.h : 6,
             },
         });
     };
@@ -168,6 +165,8 @@ const CanvasRenderer = ({
                                 )
                             }
                             className={`
+                                group
+                                relative
                                 h-full
                                 w-full
                                 overflow-hidden

@@ -5,12 +5,15 @@
     Button,
     Switch,
     InputNumber,
-    Divider
+    Divider,
+    Popconfirm
 } from 'antd';
+import { Trash2 } from 'lucide-react';
 
 const PropertiesPanel = ({
     selectedComponent,
     onUpdate,
+    onDelete,
 }) => {
     if (!selectedComponent) {
         return (
@@ -59,7 +62,6 @@ const PropertiesPanel = ({
     return (
         <div className="p-4">
             <Card title="Свойства">
-
                 <div className="mb-3">
                     <div className="mb-1">
                         Заголовок
@@ -498,6 +500,27 @@ const PropertiesPanel = ({
                         </div>
                     </>
                 )}
+
+                <Divider />
+
+                <Popconfirm
+                    title="Удалить компонент?"
+                    description="Это действие можно отменить (Ctrl+Z)."
+                    okText="Удалить"
+                    okType="danger"
+                    cancelText="Отмена"
+                    onConfirm={() =>
+                        onDelete?.(selectedComponent.id)
+                    }
+                >
+                    <Button
+                        danger
+                        block
+                        icon={<Trash2 size={16} />}
+                    >
+                        Удалить компонент
+                    </Button>
+                </Popconfirm>
 
             </Card>
         </div>
